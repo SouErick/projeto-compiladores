@@ -96,9 +96,50 @@ class Lexer:
             if char == '%':
                 self.advance()
                 return Token(TipoToken.MOD, char, self.line, col)
+                
             if char == '=':
                 self.advance()
-                return Token(TipoToken.ASSIGN, char, self.line, col)
+                if self.current_char == '=':
+                    self.advance()
+                    return Token(TipoToken.EQ, '==', self.line, col)
+                return Token(TipoToken.ASSIGN, '=', self.line, col)
+                
+            if char == '!':
+                self.advance()
+                if self.current_char == '=':
+                    self.advance()
+                    return Token(TipoToken.NEQ, '!=', self.line, col)
+                return Token(TipoToken.NOT, '!', self.line, col)
+                
+            if char == '>':
+                self.advance()
+                if self.current_char == '=':
+                    self.advance()
+                    return Token(TipoToken.GE, '>=', self.line, col)
+                return Token(TipoToken.GT, '>', self.line, col)
+                
+            if char == '<':
+                self.advance()
+                if self.current_char == '=':
+                    self.advance()
+                    return Token(TipoToken.LE, '<=', self.line, col)
+                return Token(TipoToken.LT, '<', self.line, col)
+                
+            if char == '&':
+                self.advance()
+                if self.current_char == '&':
+                    self.advance()
+                    return Token(TipoToken.AND, '&&', self.line, col)
+                raise LexicalError(f"Erro Léxico: Esperado '&' após '&' na linha {self.line}, coluna {self.column}")
+                
+            if char == '|':
+                self.advance()
+                if self.current_char == '|':
+                    self.advance()
+                    return Token(TipoToken.OR, '||', self.line, col)
+                raise LexicalError(f"Erro Léxico: Esperado '|' após '|' na linha {self.line}, coluna {self.column}")
+
+            # Delimitadores
             if char == ';':
                 self.advance()
                 return Token(TipoToken.SEMI, char, self.line, col)

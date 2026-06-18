@@ -21,6 +21,19 @@ class TipoToken(Enum):
     DIV = auto()       # /
     MOD = auto()       # %
     
+    # Operadores Relacionais
+    EQ = auto()        # == (Igualdade)
+    NEQ = auto()       # != (Diferença)
+    GT = auto()        # >  (Maior)
+    LT = auto()        # <  (Menor)
+    GE = auto()        # >= (Maior ou igual)
+    LE = auto()        # <= (Menor ou igual)
+    
+    # Operadores Lógicos
+    AND = auto()       # && (E lógico)
+    OR = auto()        # || (OU lógico)
+    NOT = auto()       # !  (Negação)
+    
     # Atribuição e Delimitadores
     ASSIGN = auto()    # =
     SEMI = auto()      # ;
