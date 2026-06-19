@@ -1,0 +1,2 @@
+--- Árvore Sintática Abstrata (AST) ---
+NoPrograma(comandos=[NoDeclVariavel(tipo=INT, nome='a', init=NoLiteralInt(10)), NoDeclVariavel(tipo=FLOAT, nome='b', init=NoLiteralFloat(3.14)), NoAtribuicao(nome='a', expr=NoOpBinaria(esq=NoVariavel('a'), op=PLUS, dir=NoLiteralInt(5))), NoIf(cond=NoOpBinaria(esq=NoOpBinaria(esq=NoVariavel('a'), op=EQ, dir=NoLiteralInt(10)), op=AND, dir=NoOpBinaria(esq=NoVariavel('b'), op=NEQ, dir=NoLiteralInt(5))), then=NoComandoVazio(), else=None)])
