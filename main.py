@@ -1,14 +1,12 @@
 import os
 from lexer import Lexer, LexicalError
 from parser import Parser, ErroSintatico
-
+from semantic import AnalisadorSemantico, ErroSemantico # <--- NOVA IMPORTAÇÃO
 
 def main():
-    # Garante que as pastas testes e output existem (cria se não existir)
     os.makedirs("testes", exist_ok=True)
     os.makedirs("output", exist_ok=True)
 
-    # Caminho para o arquivo de teste e arquivo de saída do debug
     test_file = os.path.join("testes", "01_variaveis.txt")
     output_file = os.path.join("output", "ast_debug.txt")
 
@@ -16,7 +14,6 @@ def main():
         print(f"Erro: O arquivo {test_file} não foi encontrado.")
         return
 
-    # Lê o conteúdo do código-fonte
     with open(test_file, "r", encoding="utf-8") as f:
         source_code = f.read()
 
@@ -24,26 +21,34 @@ def main():
     print(source_code)
     print("-" * 20)
 
-    # Bloco try-except estruturado para capturar erros do compilador
     try:
-        # 1. Fase Léxica: Cria o lexer
+        # 1. Fase Léxica
         lexer = Lexer(source_code)
 
-        # 2. Fase Sintática: Cria o parser e constrói a AST
+        # 2. Fase Sintática
         parser = Parser(lexer)
         ast = parser.parse_programa()
 
-        # 3. Impressão e gravação da AST
         print("--- Árvore Sintática Abstrata (AST) ---")
         print(ast)
+
+        # 3. Fase Semântica <--- NOVA FASE
+        semantico = AnalisadorSemantico()
+        semantico.visitar(ast)
+        
+        print("\n--- Tabela de Símbolos ---")
+        for nome, dados in semantico.tabela.simbolos.items():
+            print(f"Var: '{nome}' | Tipo: {dados['tipo'].name} | Endereço SAM (Offset): {dados['offset']}")
 
         with open(output_file, "w", encoding="utf-8") as f_out:
             f_out.write("--- Árvore Sintática Abstrata (AST) ---\n")
             f_out.write(repr(ast))
+            f_out.write("\n\n--- Tabela de Símbolos ---\n")
+            f_out.write(str(semantico.tabela.simbolos))
 
-        print(f"\n[Sucesso] AST salva no arquivo: {output_file}")
+        print(f"\n[Sucesso] Compilação passou por Léxico, Sintático e Semântico sem erros!")
 
-    except (LexicalError, ErroSintatico) as e:
+    except (LexicalError, ErroSintatico, ErroSemantico) as e: # <--- CAPTURAR ERRO SEMÂNTICO
         error_msg = f"FALHA NA COMPILAÇÃO:\n{e}"
         print(f"\n{error_msg}")
         with open(output_file, "w", encoding="utf-8") as f_out:
