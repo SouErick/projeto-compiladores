@@ -1,14 +1,16 @@
 import os
 from lexer import Lexer, LexicalError
 from parser import Parser, ErroSintatico
-from semantic import AnalisadorSemantico, ErroSemantico # <--- NOVA IMPORTAÇÃO
+from semantic import AnalisadorSemantico, ErroSemantico
+from code_sam import GeradorCodigo 
 
 def main():
     os.makedirs("testes", exist_ok=True)
     os.makedirs("output", exist_ok=True)
 
     test_file = os.path.join("testes", "01_variaveis.txt")
-    output_file = os.path.join("output", "ast_debug.txt")
+    output_file_ast = os.path.join("output", "ast_debug.txt")
+    output_file_sam = os.path.join("output", "programa.sam") # <--- ARQUIVO FINAL
 
     if not os.path.exists(test_file):
         print(f"Erro: O arquivo {test_file} não foi encontrado.")
@@ -17,42 +19,38 @@ def main():
     with open(test_file, "r", encoding="utf-8") as f:
         source_code = f.read()
 
-    print("--- Código Fonte ---")
-    print(source_code)
-    print("-" * 20)
+    print("--- Iniciando Compilação ---")
 
     try:
-        # 1. Fase Léxica
+        # 1. Léxico
         lexer = Lexer(source_code)
 
-        # 2. Fase Sintática
+        # 2. Sintático
         parser = Parser(lexer)
         ast = parser.parse_programa()
 
-        print("--- Árvore Sintática Abstrata (AST) ---")
-        print(ast)
-
-        # 3. Fase Semântica <--- NOVA FASE
+        # 3. Semântico
         semantico = AnalisadorSemantico()
         semantico.visitar(ast)
         
-        print("\n--- Tabela de Símbolos ---")
-        for nome, dados in semantico.tabela.simbolos.items():
-            print(f"Var: '{nome}' | Tipo: {dados['tipo'].name} | Endereço SAM (Offset): {dados['offset']}")
+        # 4. Geração de Código SAM <--- NOVA FASE
+        gerador = GeradorCodigo(semantico.tabela)
+        codigo_sam = gerador.gerar(ast)
 
-        with open(output_file, "w", encoding="utf-8") as f_out:
-            f_out.write("--- Árvore Sintática Abstrata (AST) ---\n")
-            f_out.write(repr(ast))
-            f_out.write("\n\n--- Tabela de Símbolos ---\n")
-            f_out.write(str(semantico.tabela.simbolos))
+        # Gravar a AST para debug
+        with open(output_file_ast, "w", encoding="utf-8") as f_out:
+            f_out.write("--- AST ---\n" + repr(ast) + "\n\n--- Tabela de Símbolos ---\n" + str(semantico.tabela.simbolos))
 
-        print(f"\n[Sucesso] Compilação passou por Léxico, Sintático e Semântico sem erros!")
+        # Gravar o Código Final
+        with open(output_file_sam, "w", encoding="utf-8") as f_out:
+            f_out.write(codigo_sam)
 
-    except (LexicalError, ErroSintatico, ErroSemantico) as e: # <--- CAPTURAR ERRO SEMÂNTICO
-        error_msg = f"FALHA NA COMPILAÇÃO:\n{e}"
-        print(f"\n{error_msg}")
-        with open(output_file, "w", encoding="utf-8") as f_out:
-            f_out.write(error_msg)
+        print("\n--- Código Assembly SAM Gerado ---")
+        print(codigo_sam)
+        print(f"\n[Sucesso] Compilação finalizada! Arquivo salvo em: {output_file_sam}")
+
+    except (LexicalError, ErroSintatico, ErroSemantico) as e:
+        print(f"\nFALHA NA COMPILAÇÃO:\n{e}")
 
 if __name__ == "__main__":
     main()
