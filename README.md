@@ -21,8 +21,9 @@ programa        ::= (comando)*
 
 comando         ::= declaracao | atribuicao | estrutura_controle | bloco | comando_vazio
 
-declaracao      ::= tipo ID ( "=" expressao )? ";"
-atribuicao      ::= ID "=" expressao ";"
+declaracao      ::= tipo declarador ( "," declarador )* ";"
+declarador      ::= ID ( "=" expressao )?
+atribuicao      ::= ID "=" expressao ";" | ID ( "++" | "--" ) ";"
 estrutura_controle ::= if | while
 bloco           ::= "{" (comando)* "}"
 comando_vazio   ::= ";"

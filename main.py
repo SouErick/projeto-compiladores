@@ -1,3 +1,10 @@
+''' 
+INSTITUTO FEDERAL DE BRASÍLIA (CAMPUS TAGUATINGA)
+PROFESSOR: DANIEL SAAD
+ALUNO: ERICK SOUSA SARAIVA
+DISCIPINA: COMPILADORES
+DATA: 23/06/2026 '''
+
 import os
 from lexer import Lexer, LexicalError
 from parser import Parser, ErroSintatico
@@ -25,16 +32,16 @@ def main():
         # 1. Léxico
         lexer = Lexer(source_code)
 
-        # 2. Sintático
+        # 2. Sintático, os tokens terão uma noção hierárquica, e serão organizados em uma árvore de sintaxe abstrata (AST)
         parser = Parser(lexer)
-        ast = parser.parse_programa()
+        ast = parser.parse_programa() # gera a AST (Árvore de Sintaxe Abstrata)
 
         # 3. Semântico
-        semantico = AnalisadorSemantico()
+        semantico = AnalisadorSemantico() 
         semantico.visitar(ast)
         
         # 4. Geração de Código SAM 
-        gerador = GeradorCodigo(semantico.tabela)
+        gerador = GeradorCodigo(total_vars=semantico.tabela.offset_atual)
         codigo_sam = gerador.gerar(ast)
 
         with open(output_file_ast, "w", encoding="utf-8") as f_out:

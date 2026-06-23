@@ -1,17 +1,25 @@
 from enum_tokens import TipoToken, KEYWORDS, Token
 
-
+# CAMADA RESPONSÁVEL PELA ANÁLISE LÉXICA 
+# OS CARACTERES PRESENTES NO ARQUIVOS SERÃO LIDOS CARACTER POR CARACTER, E CADA
+# CARACTER SERÁ CLASSIFICADO EM UM TIPO DE TOKEN RESPONSÁVEL, PRESENTES 
+# NO DICIONÁRIO DE DEFINIÇÃO DE TOKENS (enum_tokens.py)
+# AO FINAL GERA UMA LISTA DE TOKENS
+# por exemplo: int a = 5; será convertido em:
+# TIPO_TOKEN.INT, TIPO_TOKEN.ID(a), TIPO_TOKEN.ASSIGN, TIPO_TOKEN.NUM_INT(5), TIPO_TOKEN.SEMI
 class LexicalError(Exception):
     pass
 
 class Lexer:
+    # Classe resposável por ler o código fonte e gerar tokens
     def __init__(self, text):
         self.text = text
         self.pos = 0
         self.current_char = self.text[self.pos] if self.pos < len(self.text) else None
         self.line = 1
         self.column = 1
-
+    
+    # classes auxiliadoras para get_next_token
     def advance(self):
         if self.current_char == '\n':
             self.line += 1
@@ -26,6 +34,8 @@ class Lexer:
             self.current_char = self.text[self.pos]
 
     def peek(self):
+        # importante para verificar o próximo caractere sem avançar a posição atual
+        # como == ou !=, && ou ||, ++ ou --, etc...
         peek_pos = self.pos + 1
         if peek_pos >= len(self.text):
             return None
@@ -41,6 +51,7 @@ class Lexer:
             self.advance()
 
     def number(self):
+        #classe responsável por identificar números inteiros e float
         result = ''
         start_col = self.column
         is_float = False
@@ -58,6 +69,7 @@ class Lexer:
         return Token(TipoToken.NUM_INT, int(result), self.line, start_col)
 
     def identifier(self):
+        # palavras reservadas e identificadores de variáveis
         result = ''
         start_col = self.column
         
@@ -69,6 +81,7 @@ class Lexer:
         return Token(token_type, result, self.line, start_col)
 
     def get_next_token(self):
+        #classe principal responsável por gerar os tokens, chamando as funções auxiliares
         while self.current_char is not None:
             
             if self.current_char.isspace():

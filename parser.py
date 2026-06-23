@@ -3,20 +3,24 @@ from ast_nodes import (
     NoPrograma, NoDeclVariavel, NoAtribuicao, NoOpBinaria, NoOpUnaria,
     NoLiteralInt, NoLiteralFloat, NoVariavel, NoBloco, NoIf, NoWhile,
     NoComandoVazio
-)
+) # nós presentes para a verificação da gramatica, e para a geração de código
 
 class ErroSintatico(Exception):
     pass
-
+# geração do código intermediário, por meio da AST
 class Parser:
+    # parser é responsável por verificar se o token segue a regra da sua linguagem
+    # definida na gramática, e faz a pergunta o que vem depois do token atual? 
     def __init__(self, lexer):
         self.lexer = lexer
         self.current_token = self.lexer.get_next_token()
 
     def error(self, mensagem):
         raise ErroSintatico(f"Erro Sintático na linha {self.current_token.line}, coluna {self.current_token.column}: {mensagem}")
-
+    
     def eat(self, tipo_esperado):
+    # metódo princiapl o token vai ganhar tipo pelas funções auxiliares do parser e verifica se o token atual 
+    # é do tipo esperado, se sim, avança para o próximo token, senão, lança um erro
         if self.current_token.type == tipo_esperado:
             self.current_token = self.lexer.get_next_token()
         else:
@@ -116,20 +120,10 @@ class Parser:
             self.eat(TipoToken.SEMI)
 
             op_binaria = TipoToken.PLUS if op_token.type == TipoToken.INC else TipoToken.MINUS
-            expressao = NoOpBinaria(NoVariavel(token_id.value), Token(op_binaria, '', op_token.line, op_token.column), NoLiteralInt(1))
+            expressao = NoOpBinaria(NoVariavel(token_id.value, token_id.line, token_id.column), Token(op_binaria, '+' if op_token.type == TipoToken.INC else '-', op_token.line, op_token.column), NoLiteralInt(1, op_token.line, op_token.column), op_token.line, op_token.column)
             return NoAtribuicao(token_id.value, expressao, token_id.line, token_id.column)
         else:
             self.error(f"Esperado '=', '++' ou '--' após o identificador '{token_id.value}'")
-
-    def parse_atribuicao(self):
-        token_id = self.current_token
-        self.eat(TipoToken.ID)
-        self.eat(TipoToken.ASSIGN)
-        
-        expr = self.parse_expressao()
-        self.eat(TipoToken.SEMI)
-        
-        return NoAtribuicao(token_id.value, expr, token_id.line, token_id.column)
 
     def parse_if(self):
         token_if = self.current_token
@@ -204,7 +198,7 @@ class Parser:
             no = NoOpBinaria(no, op, self.parse_fator(), op.line, op.column)
         return no
 
-    def parse_fator(self):
+    def parse_fator(self): 
         token = self.current_token
         
         if token.type in (TipoToken.PLUS, TipoToken.MINUS, TipoToken.NOT):
