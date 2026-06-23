@@ -10,7 +10,7 @@ def main():
 
     test_file = os.path.join("testes", "01_variaveis.txt")
     output_file_ast = os.path.join("output", "ast_debug.txt")
-    output_file_sam = os.path.join("output", "programa.sam") # <--- ARQUIVO FINAL
+    output_file_sam = os.path.join("output", "programa.sam") 
 
     if not os.path.exists(test_file):
         print(f"Erro: O arquivo {test_file} não foi encontrado.")
@@ -33,15 +33,13 @@ def main():
         semantico = AnalisadorSemantico()
         semantico.visitar(ast)
         
-        # 4. Geração de Código SAM <--- NOVA FASE
+        # 4. Geração de Código SAM 
         gerador = GeradorCodigo(semantico.tabela)
         codigo_sam = gerador.gerar(ast)
 
-        # Gravar a AST para debug
         with open(output_file_ast, "w", encoding="utf-8") as f_out:
             f_out.write("--- AST ---\n" + repr(ast) + "\n\n--- Tabela de Símbolos ---\n" + str(semantico.tabela.simbolos))
 
-        # Gravar o Código Final
         with open(output_file_sam, "w", encoding="utf-8") as f_out:
             f_out.write(codigo_sam)
 

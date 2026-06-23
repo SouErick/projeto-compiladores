@@ -1,4 +1,3 @@
-# semantic.py
 from enum_tokens import TipoToken
 from ast_nodes import NoDeclVariavel, NoAtribuicao, NoVariavel
 
@@ -7,92 +6,154 @@ class ErroSemantico(Exception):
 
 class TabelaSimbolos:
     def __init__(self):
-        # Dicionário que mapeia o nome da variável para seus metadados (tipo e offset)
-        self.simbolos = {}
-        # O offset atual na pilha de memória local (FBR)
+        self.escopos = [{}]
         self.offset_atual = 0
 
     def definir(self, nome, tipo, linha, coluna):
-        if nome in self.simbolos:
-            raise ErroSemantico(f"Erro Semântico na linha {linha}, coluna {coluna}: Variável '{nome}' já foi declarada.")
+        escopo_atual = self.escopos[-1]
+        if nome in escopo_atual:
+            raise ErroSemantico(f"Erro Semântico na linha {linha}, coluna {coluna}: Variável '{nome}' já foi declarada neste escopo.")
         
-        self.simbolos[nome] = {
+        escopo_atual[nome] = {
             'tipo': tipo,
             'offset': self.offset_atual
         }
         self.offset_atual += 1
 
     def buscar(self, nome, linha, coluna):
-        if nome not in self.simbolos:
-            raise ErroSemantico(f"Erro Semântico na linha {linha}, coluna {coluna}: Variável '{nome}' não declarada.")
-        return self.simbolos[nome]
+        for escopo in reversed(self.escopos):
+            if nome in escopo:
+                return escopo[nome]
+        raise ErroSemantico(f"Erro Semântico na linha {linha}, coluna {coluna}: Variável '{nome}' não declarada.")
 
+    def entrar_escopo(self):
+        self.escopos.append({})
+
+    def sair_escopo(self):
+        if len(self.escopos) > 1:
+            self.escopos.pop()
+
+    @property
+    def simbolos(self):
+        return {k: v for escopo in self.escopos for k, v in escopo.items()}
 
 class AnalisadorSemantico:
     def __init__(self):
         self.tabela = TabelaSimbolos()
 
     def visitar(self, no):
-        """Método despachante: chama o método visit_ especifico para o tipo de nó."""
         if no is None:
             return
         
-        # Cria o nome do método dinamicamente baseado na classe do Nó (ex: visit_NoPrograma)
         nome_metodo = f'visit_{type(no).__name__}'
         metodo = getattr(self, nome_metodo, self.visit_generico)
         return metodo(no)
 
     def visit_generico(self, no):
-        raise Exception(f"Nenhum método visit_{type(no).__name__} definido no Analisador Semântico.")
+        for child in no.__dict__.values():
+            if isinstance(child, list):
+                for item in child:
+                    self.visitar(item)
+            elif hasattr(child, 'linha'): 
+                self.visitar(child)
 
     def visit_NoPrograma(self, no):
         for comando in no.comandos:
             self.visitar(comando)
 
     def visit_NoDeclVariavel(self, no):
-        # 1. Verifica a expressão de inicialização (se houver) ANTES de declarar
+        tipo_declarado = no.tipo
+
         if no.inicializacao:
-            self.visitar(no.inicializacao)
+            tipo_expressao = self.visitar(no.inicializacao)
+            if tipo_declarado == TipoToken.INT and tipo_expressao == TipoToken.FLOAT:
+                raise ErroSemantico(f"Erro Semântico na linha {no.linha}: Não é possível atribuir um valor FLOAT a uma variável INT ('{no.nome}').")
+            if tipo_declarado != tipo_expressao and not (tipo_declarado == TipoToken.FLOAT and tipo_expressao == TipoToken.INT):
+                 raise ErroSemantico(f"Erro Semântico na linha {no.linha}: Tipo da expressão ({tipo_expressao.name}) é incompatível com o tipo declarado ({tipo_declarado.name}) para a variável '{no.nome}'.")
         
-        # 2. Adiciona a variável na Tabela de Símbolos
         self.tabela.definir(no.nome, no.tipo, no.linha, no.coluna)
 
     def visit_NoAtribuicao(self, no):
-        # 1. Verifica se a variável existe
-        self.tabela.buscar(no.nome, no.linha, no.coluna)
-        # 2. Visita a expressão do lado direito
-        self.visitar(no.expressao)
+        simbolo = self.tabela.buscar(no.nome, no.linha, no.coluna)
+        tipo_variavel = simbolo['tipo']
+
+        tipo_expressao = self.visitar(no.expressao)
+
+        if tipo_variavel == TipoToken.INT and tipo_expressao == TipoToken.FLOAT:
+            raise ErroSemantico(f"Erro Semântico na linha {no.linha}: Não é possível atribuir um valor FLOAT a uma variável INT ('{no.nome}').")
+        if tipo_variavel != tipo_expressao and not (tipo_variavel == TipoToken.FLOAT and tipo_expressao == TipoToken.INT):
+            raise ErroSemantico(f"Erro Semântico na linha {no.linha}: Tipo da expressão ({tipo_expressao.name}) é incompatível com o tipo da variável '{no.nome}' ({tipo_variavel.name}).")
 
     def visit_NoVariavel(self, no):
-        # Verifica se a variável que está a ser usada numa expressão existe
-        self.tabela.buscar(no.nome, no.linha, no.coluna)
+        simbolo = self.tabela.buscar(no.nome, no.linha, no.coluna)
+        return simbolo['tipo'] 
 
     def visit_NoOpBinaria(self, no):
-        self.visitar(no.esq)
-        self.visitar(no.dir)
+        tipo_esq = self.visitar(no.esq)
+        tipo_dir = self.visitar(no.dir)
+
+        op = no.op.type
+
+        if op in (TipoToken.PLUS, TipoToken.MINUS, TipoToken.MUL, TipoToken.DIV, TipoToken.MOD):
+            if not (tipo_esq in (TipoToken.INT, TipoToken.FLOAT) and tipo_dir in (TipoToken.INT, TipoToken.FLOAT)):
+                raise ErroSemantico(f"Erro Semântico na linha {no.linha}: Operação aritmética '{no.op.value}' inválida entre os tipos {tipo_esq.name} e {tipo_dir.name}.")
+            if tipo_esq == TipoToken.FLOAT or tipo_dir == TipoToken.FLOAT:
+                return TipoToken.FLOAT
+            return TipoToken.INT
+
+        if op in (TipoToken.EQ, TipoToken.NEQ, TipoToken.LT, TipoToken.GT, TipoToken.LE, TipoToken.GE):
+            if not (tipo_esq in (TipoToken.INT, TipoToken.FLOAT) and tipo_dir in (TipoToken.INT, TipoToken.FLOAT)):
+                 raise ErroSemantico(f"Erro Semântico na linha {no.linha}: Comparação '{no.op.value}' inválida entre os tipos {tipo_esq.name} e {tipo_dir.name}.")
+            return TipoToken.INT
+
+        if op in (TipoToken.AND, TipoToken.OR):
+            if tipo_esq != TipoToken.INT or tipo_dir != TipoToken.INT:
+                raise ErroSemantico(f"Erro Semântico na linha {no.linha}: Operação lógica '{no.op.value}' requer operandos do tipo INT (booleano), mas recebeu {tipo_esq.name} e {tipo_dir.name}.")
+            return TipoToken.INT
+
+        raise ErroSemantico(f"Erro Semântico na linha {no.linha}: Operador binário desconhecido ou não suportado '{op.name}'.")
 
     def visit_NoOpUnaria(self, no):
-        self.visitar(no.expressao)
+        tipo_expr = self.visitar(no.expressao)
+        op = no.op.type
+
+        if op == TipoToken.MINUS: 
+            if tipo_expr not in (TipoToken.INT, TipoToken.FLOAT):
+                raise ErroSemantico(f"Erro Semântico na linha {no.linha}: Operador '-' não pode ser aplicado ao tipo {tipo_expr.name}.")
+            return tipo_expr
+
+        if op == TipoToken.NOT: 
+            if tipo_expr != TipoToken.INT:
+                 raise ErroSemantico(f"Erro Semântico na linha {no.linha}: Operador '!' requer um operando do tipo INT (booleano), mas recebeu {tipo_expr.name}.")
+            return TipoToken.INT
+
+        raise ErroSemantico(f"Erro Semântico na linha {no.linha}: Operador unário desconhecido '{op.name}'.")
 
     def visit_NoIf(self, no):
-        self.visitar(no.condicao)
+        tipo_condicao = self.visitar(no.condicao)
+        if tipo_condicao != TipoToken.INT:
+            raise ErroSemantico(f"Erro Semântico na linha {no.linha}: A condição do 'if' deve ser do tipo booleano (INT), mas é do tipo {tipo_condicao.name}.")
         self.visitar(no.bloco_then)
         if no.bloco_else:
             self.visitar(no.bloco_else)
 
     def visit_NoWhile(self, no):
-        self.visitar(no.condicao)
+        tipo_condicao = self.visitar(no.condicao)
+        if tipo_condicao != TipoToken.INT:
+            raise ErroSemantico(f"Erro Semântico na linha {no.linha}: A condição do 'while' deve ser do tipo booleano (INT), mas é do tipo {tipo_condicao.name}.")
         self.visitar(no.corpo)
 
     def visit_NoBloco(self, no):
+        self.tabela.entrar_escopo()
         for comando in no.comandos:
             self.visitar(comando)
+        self.tabela.sair_escopo()
 
     def visit_NoLiteralInt(self, no):
-        pass # Literais não precisam de checagem semântica aqui
+        return TipoToken.INT
 
     def visit_NoLiteralFloat(self, no):
-        pass
+        return TipoToken.FLOAT
 
     def visit_NoComandoVazio(self, no):
         pass

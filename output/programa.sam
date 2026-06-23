@@ -1,24 +1,9 @@
-ADDSP 2 //
-PUSHIMM 10 //
-STOREOFF 0 //
-PUSHIMM 3.14 //
-STOREOFF 1 //
-PUSHOFF 0 //
-PUSHIMM 5 //
-ADD //
-STOREOFF 0 //
-PUSHOFF 0 //
-PUSHIMM 10 //
-EQUAL //
-PUSHOFF 1 //
-PUSHIMM 5 //
-EQUAL //
-ISNIL //
-MUL //
-ISNIL //
-JUMPC else0 //
-JUMP endif1 //
-else0: //
-endif1: //
-ADDSP -2 //
-STOP //
+ADDSP 2      // Aloca espaço para 2 variáveis
+PUSHIMM 5    // Literal inteiro 5
+STOREOFF 0   // Atribuição para 'x'
+PUSHOFF 0    // Lê valor de 'x'
+PUSHIMM 6    // Literal inteiro 6
+ADD          // NoVariavel('x') + NoLiteralInt(6)
+STOREOFF 1   // Atribuição para 'y'
+ADDSP -2     // Libera espaço das variáveis
+STOP         // Fim do programa
