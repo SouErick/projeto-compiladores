@@ -1,0 +1,24 @@
+ADDSP 2 //
+PUSHIMM 10 //
+STOREOFF 0 //
+PUSHIMM 3.14 //
+STOREOFF 1 //
+PUSHOFF 0 //
+PUSHIMM 5 //
+ADD //
+STOREOFF 0 //
+PUSHOFF 0 //
+PUSHIMM 10 //
+EQUAL //
+PUSHOFF 1 //
+PUSHIMM 5 //
+EQUAL //
+ISNIL //
+MUL //
+ISNIL //
+JUMPC else0 //
+JUMP endif1 //
+else0: //
+endif1: //
+ADDSP -2 //
+STOP //
