@@ -1,7 +1,6 @@
 from enum_tokens import TipoToken, KEYWORDS, Token
 
 
-# Exceção customizada para erros na fase Léxica
 class LexicalError(Exception):
     pass
 
@@ -14,7 +13,6 @@ class Lexer:
         self.column = 1
 
     def advance(self):
-        """Avança o ponteiro e atualiza o caractere atual."""
         if self.current_char == '\n':
             self.line += 1
             self.column = 0
@@ -23,17 +21,26 @@ class Lexer:
         self.column += 1
         
         if self.pos >= len(self.text):
-            self.current_char = None  # Indica o fim do arquivo
+            self.current_char = None  
         else:
             self.current_char = self.text[self.pos]
 
+    def peek(self):
+        peek_pos = self.pos + 1
+        if peek_pos >= len(self.text):
+            return None
+        return self.text[peek_pos]
+
+    def skip_comment(self):
+        while self.current_char is not None and self.current_char != '\n':
+            self.advance()
+        self.skip_whitespace() 
+
     def skip_whitespace(self):
-        """Ignora espaços em branco, tabulações e quebras de linha."""
         while self.current_char is not None and self.current_char.isspace():
             self.advance()
 
     def number(self):
-        """Lê um número e decide se é INT ou FLOAT."""
         result = ''
         start_col = self.column
         is_float = False
@@ -41,7 +48,7 @@ class Lexer:
         while self.current_char is not None and (self.current_char.isdigit() or self.current_char == '.'):
             if self.current_char == '.':
                 if is_float:
-                    break # Já tem um ponto, então para (evita 3.14.15)
+                    break 
                 is_float = True
             result += self.current_char
             self.advance()
@@ -51,7 +58,6 @@ class Lexer:
         return Token(TipoToken.NUM_INT, int(result), self.line, start_col)
 
     def identifier(self):
-        """Lê identificadores e verifica se são palavras-chave."""
         result = ''
         start_col = self.column
         
@@ -59,16 +65,18 @@ class Lexer:
             result += self.current_char
             self.advance()
 
-        # Verifica se o texto lido é uma palavra reservada
         token_type = KEYWORDS.get(result, TipoToken.ID)
         return Token(token_type, result, self.line, start_col)
 
     def get_next_token(self):
-        """O cérebro do Lexer: retorna o próximo token do código."""
         while self.current_char is not None:
             
             if self.current_char.isspace():
                 self.skip_whitespace()
+                continue
+
+            if self.current_char == '/' and self.peek() == '/':
+                self.skip_comment()
                 continue
 
             if self.current_char.isalpha() or self.current_char == '_':
@@ -77,15 +85,20 @@ class Lexer:
             if self.current_char.isdigit():
                 return self.number()
 
-            # Operadores de um caractere
             char = self.current_char
             col = self.column
             
             if char == '+':
                 self.advance()
+                if self.current_char == '+':
+                    self.advance()
+                    return Token(TipoToken.INC, '++', self.line, col)
                 return Token(TipoToken.PLUS, char, self.line, col)
             if char == '-':
                 self.advance()
+                if self.current_char == '-':
+                    self.advance()
+                    return Token(TipoToken.DEC, '--', self.line, col)
                 return Token(TipoToken.MINUS, char, self.line, col)
             if char == '*':
                 self.advance()
@@ -139,10 +152,12 @@ class Lexer:
                     return Token(TipoToken.OR, '||', self.line, col)
                 raise LexicalError(f"Erro Léxico: Esperado '|' após '|' na linha {self.line}, coluna {self.column}")
 
-            # Delimitadores
             if char == ';':
                 self.advance()
                 return Token(TipoToken.SEMI, char, self.line, col)
+            if char == ',':
+                self.advance()
+                return Token(TipoToken.COMMA, char, self.line, col)
             if char == '{':
                 self.advance()
                 return Token(TipoToken.LBRACE, char, self.line, col)
@@ -156,7 +171,6 @@ class Lexer:
                 self.advance()
                 return Token(TipoToken.RPAREN, char, self.line, col)
 
-            # Se chegou aqui e não reconheceu o caractere, levanta um erro
             raise LexicalError(f"Erro Léxico: Caractere inesperado '{self.current_char}' na linha {self.line}, coluna {self.column}")
 
         return Token(TipoToken.EOF, None, self.line, self.column)

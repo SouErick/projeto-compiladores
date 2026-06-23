@@ -33,10 +33,15 @@ class TipoToken(Enum):
     AND = auto()       # && (E lógico)
     OR = auto()        # || (OU lógico)
     NOT = auto()       # !  (Negação)
+
+    # Operadores de Incremento/Decremento
+    INC = auto()       # ++
+    DEC = auto()       # --
     
     # Atribuição e Delimitadores
     ASSIGN = auto()    # =
     SEMI = auto()      # ;
+    COMMA = auto()     # ,
     LPAREN = auto()    # (
     RPAREN = auto()    # )
     LBRACE = auto()    # {
