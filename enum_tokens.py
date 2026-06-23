@@ -1,5 +1,6 @@
 from enum import Enum, auto
-
+# Classe auxiliadora 
+# para definir os tipos de tokens que o lexer pode gerar
 class TipoToken(Enum):
     # Tipos e Palavras-chave
     INT = auto()       # Tipo inteiro
@@ -59,6 +60,7 @@ KEYWORDS = {
     'while': TipoToken.WHILE,
 }
 
+# RESPONSAVEL POR GERAR OS TOKENS, ELES SÃO USADOS PELO PARSER (ANALISE SINTÁTICA)
 class Token:
     def __init__(self, type_, value, line, column):
         self.type = type_

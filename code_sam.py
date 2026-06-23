@@ -1,11 +1,15 @@
 from enum_tokens import TipoToken
 
+# visita a AST com offset da variável, percorrendo pós ordem 
+# vai emitir a quantidade de variáveis declaradas, 
+# e gerar o sam code com base na AST
 class GeradorCodigo:
-    def __init__(self, tabela_simbolos):
-        self.tabela = tabela_simbolos
+    def __init__(self, total_vars):
+        self.total_vars = total_vars
         self.codigo = []
         self.label_count = 0  
 
+    # bloco para condições e laços, para gerar labels únicas
     def gerar_label(self, prefixo):
         nome = f"{prefixo}{self.label_count}"
         self.label_count += 1
@@ -21,8 +25,13 @@ class GeradorCodigo:
         self.visitar(ast)
         return "\n".join(self.codigo)
 
+    # visita a AST, chamando o método específico para cada tipo de nó
     def visitar(self, no):
         if no is None:
+            return
+        if isinstance(no, list):
+            for item in no:
+                self.visitar(item)
             return
         nome_metodo = f'visit_{type(no).__name__}'
         metodo = getattr(self, nome_metodo, self.visit_generico)
@@ -32,31 +41,27 @@ class GeradorCodigo:
         raise Exception(f"Geração de código não implementada para {type(no).__name__}")
 
     def visit_NoPrograma(self, no):
-        total_vars = self.tabela.offset_atual
-        if total_vars > 0:
-            self.emitir(f"ADDSP {total_vars}", f"Aloca espaço para {total_vars} variáveis")
+        if self.total_vars > 0:
+            self.emitir(f"ADDSP {self.total_vars}", f"Aloca espaço para {self.total_vars} variáveis")
 
         for comando in no.comandos:
             self.visitar(comando)
 
-        if total_vars > 0:
-            self.emitir(f"ADDSP -{total_vars}", "Libera espaço das variáveis")
+        if self.total_vars > 0:
+            self.emitir(f"ADDSP -{self.total_vars}", "Libera espaço das variáveis")
         self.emitir("STOP", "Fim do programa")
 
     def visit_NoDeclVariavel(self, no):
         if no.inicializacao:
             self.visitar(no.inicializacao)
-            simbolo = self.tabela.buscar(no.nome, no.linha, no.coluna)
-            self.emitir(f"STOREOFF {simbolo['offset']}", f"Salva valor inicial em '{no.nome}'")
+            self.emitir(f"STOREOFF {no.offset}", f"Salva valor inicial em '{no.nome}'")
 
     def visit_NoAtribuicao(self, no):
         self.visitar(no.expressao)
-        simbolo = self.tabela.buscar(no.nome, no.linha, no.coluna)
-        self.emitir(f"STOREOFF {simbolo['offset']}", f"Atribuição para '{no.nome}'")
+        self.emitir(f"STOREOFF {no.offset}", f"Atribuição para '{no.nome}'")
 
     def visit_NoVariavel(self, no):
-        simbolo = self.tabela.buscar(no.nome, no.linha, no.coluna)
-        self.emitir(f"PUSHOFF {simbolo['offset']}", f"Lê valor de '{no.nome}'")
+        self.emitir(f"PUSHOFF {no.offset}", f"Lê valor de '{no.nome}'")
 
     def visit_NoLiteralInt(self, no):
         self.emitir(f"PUSHIMM {no.valor}", f"Literal inteiro {no.valor}")
@@ -67,7 +72,7 @@ class GeradorCodigo:
     def visit_NoComandoVazio(self, no):
         pass
 
-    def visit_NoBloco(self, no):
+    def visit_NoBloco(self, no): # sempre que entrar em um bloco, cria um novo escopo, e ao sair do bloco, remove o escopo
         for comando in no.comandos:
             self.visitar(comando)
 

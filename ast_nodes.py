@@ -1,7 +1,7 @@
-# Analise sintatica por meio de uma arvore de sintaxe abstrata (AST)
+# estrutura de dados responsavel por armazenar a arvore de sintaxe abstrata, para uso
+# auxiliar na analise semantica e geração de código. Cada nó representa uma construção da linguagem (ex: declaração, expressão).
 class NoAST:
     pass
-
 class NoPrograma(NoAST):
     def __init__(self, comandos):
         self.comandos = comandos

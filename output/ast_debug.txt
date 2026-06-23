@@ -1,5 +1,5 @@
 --- AST ---
-NoPrograma(comandos=[NoDeclVariavel(tipo=INT, nome='x', init=None), NoDeclVariavel(tipo=INT, nome='y', init=None), NoAtribuicao(nome='x', expr=NoLiteralInt(5)), NoAtribuicao(nome='y', expr=NoOpBinaria(esq=NoVariavel('x'), op=PLUS, dir=NoLiteralInt(6)))])
+NoPrograma(comandos=[NoDeclVariavel(tipo=INT, nome='x', init=None), NoDeclVariavel(tipo=INT, nome='y', init=None), NoDeclVariavel(tipo=INT, nome='z', init=None), NoAtribuicao(nome='x', expr=NoLiteralInt(5)), NoAtribuicao(nome='y', expr=NoLiteralInt(3)), NoIf(cond=NoOpBinaria(esq=NoVariavel('x'), op=GT, dir=NoVariavel('y')), then=NoBloco(comandos=[NoAtribuicao(nome='z', expr=NoVariavel('x'))]), else=NoBloco(comandos=[NoAtribuicao(nome='z', expr=NoVariavel('y'))]))])
 
 --- Tabela de Símbolos ---
-{'x': {'tipo': <TipoToken.INT: 1>, 'offset': 0}, 'y': {'tipo': <TipoToken.INT: 1>, 'offset': 1}}
+{'x': {'tipo': <TipoToken.INT: 1>, 'offset': 0}, 'y': {'tipo': <TipoToken.INT: 1>, 'offset': 1}, 'z': {'tipo': <TipoToken.INT: 1>, 'offset': 2}}

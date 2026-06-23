@@ -1,26 +1,30 @@
 from enum_tokens import TipoToken
-from ast_nodes import NoDeclVariavel, NoAtribuicao, NoVariavel
 
 class ErroSemantico(Exception):
     pass
-
+# Classe responsável por gerenciar a tabela de símbolos,
+# realiza a analise da AST e verifica os tipos de dados compativéis, o sentido
 class TabelaSimbolos:
     def __init__(self):
         self.escopos = [{}]
         self.offset_atual = 0
 
     def definir(self, nome, tipo, linha, coluna):
+    # posteriormente, o metódo vai reescrever a AST com o offset da variável
+    # garantindo que a variável seja declarada apenas uma vez no mesmo escopo
+    # e facilitando a geração do sam code.
         escopo_atual = self.escopos[-1]
         if nome in escopo_atual:
             raise ErroSemantico(f"Erro Semântico na linha {linha}, coluna {coluna}: Variável '{nome}' já foi declarada neste escopo.")
-        
+        offset = self.offset_atual
         escopo_atual[nome] = {
             'tipo': tipo,
-            'offset': self.offset_atual
+            'offset': offset
         }
         self.offset_atual += 1
+        return offset
 
-    def buscar(self, nome, linha, coluna):
+    def buscar(self, nome, linha, coluna): # busca do mais interno para o mais externo
         for escopo in reversed(self.escopos):
             if nome in escopo:
                 return escopo[nome]
@@ -33,11 +37,14 @@ class TabelaSimbolos:
         if len(self.escopos) > 1:
             self.escopos.pop()
 
-    @property
+    @property # @property permite acessar o metódo como se fosse um atributo 
     def simbolos(self):
         return {k: v for escopo in self.escopos for k, v in escopo.items()}
 
 class AnalisadorSemantico:
+    # principal classe responsável por percorrer a AST e verificar a semântica do código, como tipos de dados, declarações e atribuições
+    # vai visitar os nós da AST, e reescrever a AST com o offset da variável de acordo
+    # com a tabela de símbolos
     def __init__(self):
         self.tabela = TabelaSimbolos()
 
@@ -53,8 +60,9 @@ class AnalisadorSemantico:
         for child in no.__dict__.values():
             if isinstance(child, list):
                 for item in child:
-                    self.visitar(item)
-            elif hasattr(child, 'linha'): 
+                    if hasattr(item, 'linha'): # Garante que é um nó
+                        self.visitar(item)
+            elif hasattr(child, 'linha'): # Heurística para identificar um nó
                 self.visitar(child)
 
     def visit_NoPrograma(self, no):
@@ -71,10 +79,11 @@ class AnalisadorSemantico:
             if tipo_declarado != tipo_expressao and not (tipo_declarado == TipoToken.FLOAT and tipo_expressao == TipoToken.INT):
                  raise ErroSemantico(f"Erro Semântico na linha {no.linha}: Tipo da expressão ({tipo_expressao.name}) é incompatível com o tipo declarado ({tipo_declarado.name}) para a variável '{no.nome}'.")
         
-        self.tabela.definir(no.nome, no.tipo, no.linha, no.coluna)
+        no.offset = self.tabela.definir(no.nome, no.tipo, no.linha, no.coluna)
 
     def visit_NoAtribuicao(self, no):
         simbolo = self.tabela.buscar(no.nome, no.linha, no.coluna)
+        no.offset = simbolo['offset']
         tipo_variavel = simbolo['tipo']
 
         tipo_expressao = self.visitar(no.expressao)
@@ -86,7 +95,8 @@ class AnalisadorSemantico:
 
     def visit_NoVariavel(self, no):
         simbolo = self.tabela.buscar(no.nome, no.linha, no.coluna)
-        return simbolo['tipo'] 
+        no.offset = simbolo['offset']
+        return simbolo['tipo']
 
     def visit_NoOpBinaria(self, no):
         tipo_esq = self.visitar(no.esq)
@@ -103,12 +113,12 @@ class AnalisadorSemantico:
 
         if op in (TipoToken.EQ, TipoToken.NEQ, TipoToken.LT, TipoToken.GT, TipoToken.LE, TipoToken.GE):
             if not (tipo_esq in (TipoToken.INT, TipoToken.FLOAT) and tipo_dir in (TipoToken.INT, TipoToken.FLOAT)):
-                 raise ErroSemantico(f"Erro Semântico na linha {no.linha}: Comparação '{no.op.value}' inválida entre os tipos {tipo_esq.name} e {tipo_dir.name}.")
+                 raise ErroSemantico(f"Erro Semântico na linha {no.op.line}: Comparação '{no.op.value}' inválida entre os tipos {tipo_esq.name} e {tipo_dir.name}.")
             return TipoToken.INT
 
         if op in (TipoToken.AND, TipoToken.OR):
-            if tipo_esq != TipoToken.INT or tipo_dir != TipoToken.INT:
-                raise ErroSemantico(f"Erro Semântico na linha {no.linha}: Operação lógica '{no.op.value}' requer operandos do tipo INT (booleano), mas recebeu {tipo_esq.name} e {tipo_dir.name}.")
+            if not (tipo_esq == TipoToken.INT and tipo_dir == TipoToken.INT):
+                raise ErroSemantico(f"Erro Semântico na linha {no.op.line}: Operação lógica '{no.op.value}' requer operandos do tipo INT (booleano), mas recebeu {tipo_esq.name} e {tipo_dir.name}.")
             return TipoToken.INT
 
         raise ErroSemantico(f"Erro Semântico na linha {no.linha}: Operador binário desconhecido ou não suportado '{op.name}'.")
