@@ -105,14 +105,16 @@ class AnalisadorSemantico:
         op = no.op.type
 
         if op in (TipoToken.PLUS, TipoToken.MINUS, TipoToken.MUL, TipoToken.DIV, TipoToken.MOD):
-            if not (tipo_esq in (TipoToken.INT, TipoToken.FLOAT) and tipo_dir in (TipoToken.INT, TipoToken.FLOAT)):
+            tipos_numericos = (TipoToken.INT, TipoToken.FLOAT, TipoToken.CHAR)
+            if not (tipo_esq in tipos_numericos and tipo_dir in tipos_numericos):
                 raise ErroSemantico(f"Erro Semântico na linha {no.linha}: Operação aritmética '{no.op.value}' inválida entre os tipos {tipo_esq.name} e {tipo_dir.name}.")
             if tipo_esq == TipoToken.FLOAT or tipo_dir == TipoToken.FLOAT:
                 return TipoToken.FLOAT
             return TipoToken.INT
 
         if op in (TipoToken.EQ, TipoToken.NEQ, TipoToken.LT, TipoToken.GT, TipoToken.LE, TipoToken.GE):
-            if not (tipo_esq in (TipoToken.INT, TipoToken.FLOAT) and tipo_dir in (TipoToken.INT, TipoToken.FLOAT)):
+            tipos_comparaveis = (TipoToken.INT, TipoToken.FLOAT, TipoToken.CHAR)
+            if not (tipo_esq in tipos_comparaveis and tipo_dir in tipos_comparaveis):
                  raise ErroSemantico(f"Erro Semântico na linha {no.op.line}: Comparação '{no.op.value}' inválida entre os tipos {tipo_esq.name} e {tipo_dir.name}.")
             return TipoToken.INT
 
