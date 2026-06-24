@@ -5,11 +5,15 @@ Este repositório contém um compilador simples para uma linguagem imperativa, s
 ## Como Executar
 
 1. Certifique-se de ter o Python 3 instalado.
-2. Coloque o código-fonte que deseja compilar no arquivo `testes/01_variaveis.txt` (ou outro arquivo de teste).
-3. Execute o compilador:
+2. Para compilar um arquivo, passe o caminho dele como argumento na linha de comando:
+   ```bash
+   python main.py caminho/para/seu/arquivo.txt
+   ```
+3. Se nenhum arquivo for especificado, o compilador usará `testes/01_variaveis.txt` como padrão:
    ```bash
    python main.py
    ```
+
 4. O código Assembly SAM será gerado em `output/programa.sam`.
 
 ## Gramática da Linguagem (EBNF)
@@ -21,8 +25,7 @@ programa        ::= (comando)*
 
 comando         ::= declaracao | atribuicao | estrutura_controle | bloco | comando_vazio
 
-declaracao      ::= tipo declarador ( "," declarador )* ";"
-declarador      ::= ID ( "=" expressao )?
+declaracao      ::= tipo ID ( "=" expressao )? ( "," ID ( "=" expressao )? )* ";"
 atribuicao      ::= ID "=" expressao ";" | ID ( "++" | "--" ) ";"
 estrutura_controle ::= if | while
 bloco           ::= "{" (comando)* "}"

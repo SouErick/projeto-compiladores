@@ -6,6 +6,7 @@ DISCIPINA: COMPILADORES
 DATA: 23/06/2026 '''
 
 import os
+import sys
 from lexer import Lexer, LexicalError
 from parser import Parser, ErroSintatico
 from semantic import AnalisadorSemantico, ErroSemantico
@@ -15,7 +16,13 @@ def main():
     os.makedirs("testes", exist_ok=True)
     os.makedirs("output", exist_ok=True)
 
-    test_file = os.path.join("testes", "01_variaveis.txt")
+    if len(sys.argv) > 1:
+        test_file = sys.argv[1]
+    else:
+        default_filename = "01_variaveis.txt"
+        test_file = os.path.join("testes", default_filename)
+        print(f"Nenhum arquivo de entrada especificado. Usando o padrão: {test_file}")
+
     output_file_ast = os.path.join("output", "ast_debug.txt")
     output_file_sam = os.path.join("output", "programa.sam") 
 
